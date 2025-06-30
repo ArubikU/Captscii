@@ -3,78 +3,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { motion } from "framer-motion";
-export function generateString(length, rules) {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let result = "";
-    if (rules.startsWith) {
-        result += rules.startsWith[Math.floor(Math.random() * rules.startsWith.length)];
-    }
-    for (let i = result.length; i < length - (rules.endsWith ? 1 : 0); i++) {
-        let randomChar = chars[Math.floor(Math.random() * chars.length)];
-        if (rules.noRepeatingChars && result.includes(randomChar)) {
-            i--;
-            continue;
-        }
-        result += randomChar;
-    }
-    if (rules.endsWith) {
-        result += rules.endsWith[Math.floor(Math.random() * rules.endsWith.length)];
-    }
-    if (rules.thirdCharList && result.length >= 3) {
-        result = result.substring(0, 2) + rules.thirdCharList[Math.floor(Math.random() * rules.thirdCharList.length)] + result.substring(3);
-    }
-    if (rules.containsChar && !result.includes(rules.containsChar)) {
-        result = result.substring(0, result.length - 1) + rules.containsChar;
-    }
-    return result;
-}
-export function generateCode(str) {
-    return str.split('').map(char => char.charCodeAt(0).toString(16)).join('');
-}
-export function verifyCode(code, originalStr, rules) {
-    let decodedStr = "";
-    for (let i = 0; i < code.length; i += 2) {
-        decodedStr += String.fromCharCode(parseInt(code.substring(i, i + 2), 16));
-    }
-    if (rules.sumMultiple) {
-        const sumAscii = decodedStr.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-        if (sumAscii % rules.sumMultiple !== 0)
-            return false;
-    }
-    if (rules.thirdCharList && decodedStr.length >= 3 && !rules.thirdCharList.includes(decodedStr[2]))
-        return false;
-    if (rules.lengthEven && code.length % 2 !== 0)
-        return false;
-    if (rules.startsWith && !rules.startsWith.includes(decodedStr[0]))
-        return false;
-    if (rules.endsWith && !rules.endsWith.includes(decodedStr[decodedStr.length - 1]))
-        return false;
-    if (rules.containsChar && !decodedStr.includes(rules.containsChar))
-        return false;
-    if (rules.noRepeatingChars && new Set(decodedStr).size !== decodedStr.length)
-        return false;
-    if (rules.maxVowels) {
-        const vowelCount = decodedStr.split('').filter(c => "AEIOU".includes(c)).length;
-        if (vowelCount > rules.maxVowels)
-            return false;
-    }
-    return decodedStr === originalStr;
-}
-export function generateAndVerify(length, rules) {
-    let str, code, isValid;
-    let attempts = 0, maxAttempts = 1000; // Evitar bucle infinito
-    const startTime = performance.now();
-    do {
-        if (attempts++ > maxAttempts)
-            throw new Error("No se pudo generar una cadena válida dentro del límite de intentos");
-        str = generateString(length, rules);
-        code = generateCode(str);
-        isValid = verifyCode(code, str, rules);
-    } while (!isValid);
-    const endTime = performance.now();
-    console.log(`Tiempo de ejecución: ${(endTime - startTime).toFixed(4)} ms`);
-    return { str, code, isValid, executionTime: (endTime - startTime).toFixed(4) };
-}
+import { generateAndVerify, verifyCode } from "../lib/CaptsciiUtils";
 const asciiLetters = {
     A: ["  A  ", " A A ", "AAAAA", "A   A", "A   A"],
     B: ["BBBB ", "B   B", "BBBB ", "B   B", "BBBB "],
@@ -181,6 +110,7 @@ export function Captscii({ onComplete, onFail, onGenerate, diffuse = false, colo
     const [userInput, setUserInput] = useState("");
     const [attempts, setAttempts] = useState(0);
     const [shake, setShake] = useState(false);
+    const [locked, setLocked] = useState(false);
     const generateNewCaptcha = useCallback(() => {
         const words = generateAndVerify(maxChars, rules);
         const newWord = words.str;
@@ -188,6 +118,7 @@ export function Captscii({ onComplete, onFail, onGenerate, diffuse = false, colo
         setCaptchaWord(newWord);
         setUserInput("");
         setAttempts(0);
+        setLocked(false);
         if (onGenerate)
             onGenerate(words);
     }, [rules]);
@@ -199,7 +130,7 @@ export function Captscii({ onComplete, onFail, onGenerate, diffuse = false, colo
         if (verifyCode(localStorage.getItem("captscii_" + userInput) || "", userInput, rules)) {
             if (onComplete)
                 onComplete(captchaWord);
-            generateNewCaptcha();
+            setLocked(true);
         }
         else {
             setAttempts(attempts + 1);
@@ -233,9 +164,9 @@ export function Captscii({ onComplete, onFail, onGenerate, diffuse = false, colo
         React.createElement(motion.div, { className: captchaClass, animate: animate ? { scale: [0.9, 1.1, 1] } : {}, transition: { duration: 0.5 } }, renderedWord),
         React.createElement("form", { onSubmit: handleSubmit, className: "space-y-4" },
             React.createElement(motion.div, { animate: shake ? { x: [-10, 10, -10, 10, 0] } : {}, transition: { duration: 0.4 }, className: shake ? "border-2 border-red-500 bg-red-300" : "" },
-                React.createElement(Input, { type: "text", value: userInput, onChange: (e) => setUserInput(e.target.value), placeholder: language === "en" ? "Enter the CAPTCHA text" : "Ingrese el texto del CAPTCHA", className: shake ? "bg-red-500 w-full" : "w-full", maxLength: maxChars })),
+                React.createElement(Input, { type: "text", value: userInput, onChange: (e) => setUserInput(e.target.value), placeholder: language === "en" ? "Enter the CAPTCHA text" : "Ingrese el texto del CAPTCHA", className: shake ? "bg-red-500 w-full" : "w-full", maxLength: maxChars, disabled: locked })),
             React.createElement("div", { className: "flex space-x-2" },
-                React.createElement(Button, { type: "submit", className: buttonClass }, language === "en" ? "Verify" : "Verificar"),
+                React.createElement(Button, { type: "submit", className: buttonClass, disabled: locked }, language === "en" ? "Verify" : "Verificar"),
                 React.createElement(Button, { type: "button", onClick: generateNewCaptcha, className: `${buttonClass} border-none` }, language === "en" ? "New CAPTCHA" : "Nuevo CAPTCHA"),
-                audioEnabled && (React.createElement(Button, { type: "button", onClick: playAudio, className: `${buttonClass} border-none` }, language === "en" ? "Play Audio" : "Reproducir Audio"))))));
+                audioEnabled && (React.createElement(Button, { type: "button", onClick: playAudio, className: `${buttonClass} border-none`, disabled: locked }, language === "en" ? "Play Audio" : "Reproducir Audio"))))));
 }

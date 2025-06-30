@@ -5,7 +5,7 @@
     "access": "public"
   },
   "types": "dist/index.d.ts",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "license": "ISC",
   "description": "A simple and powerful Captcha solution for your website",
   "keywords": [
@@ -27,10 +27,6 @@
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
     "@hookform/resolvers": "^3.9.1",
-    "@radix-ui/react-label": "^2.1.1",
-    "@radix-ui/react-select": "^2.1.4",
-    "@radix-ui/react-switch": "^1.1.2",
-    "@radix-ui/react-tabs": "^1.1.2",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -55,6 +51,10 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@radix-ui/react-label": "^2.1.1",
+    "@radix-ui/react-select": "^2.1.4",
+    "@radix-ui/react-switch": "^1.1.2",
+    "@radix-ui/react-tabs": "^1.1.2",
     "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",

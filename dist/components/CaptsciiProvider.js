@@ -1,14 +1,16 @@
 "use client";
-import React, { createContext, useContext, useState } from "react";
-const CaptsciiContext = createContext(undefined);
+import React from "react";
+/**
+ * @deprecated Providers are deprecated and should not be used.
+ * For practicality, this provider simply renders its children.
+ */
 export function CaptsciiProvider({ children }) {
-    const [isVerified, setIsVerified] = useState(false);
-    return React.createElement(CaptsciiContext.Provider, { value: { isVerified, setIsVerified } }, children);
+    return React.createElement(React.Fragment, null, children);
 }
+/**
+ * @deprecated Providers are deprecated and should not be used.
+ * This hook now throws an error when invoked.
+ */
 export function useCaptscii() {
-    const context = useContext(CaptsciiContext);
-    if (context === undefined) {
-        throw new Error("useCaptscii must be used within a CaptsciiProvider");
-    }
-    return context;
+    throw new Error("CaptsciiProvider is deprecated and should not be used.");
 }
